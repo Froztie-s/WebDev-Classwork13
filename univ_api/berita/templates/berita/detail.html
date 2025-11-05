@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Berita</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5" data-berita-id="{{ berita_id }}">
+        <a href="{% url 'berita-dashboard' %}" class="btn btn-secondary mb-4">Kembali ke Daftar</a>
+
+        <div id="berita-content">
+            <h1 class="mb-4" id="berita-title">Memuat...</h1>
+            <p class="text-muted" id="berita-date"></p>
+            <img id="berita-image" class="img-fluid mb-4 d-none" alt="Gambar Berita">
+            <div class="mb-5" id="berita-body"></div>
+        </div>
+
+        <h3 class="mb-4">Komentar</h3>
+        <div class="comments-section" id="komentar-container">
+            <p class="text-muted" id="komentar-empty">Memuat komentar...</p>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const container = document.querySelector("[data-berita-id]");
+        const beritaId = container.dataset.beritaId;
+        const titleEl = document.getElementById("berita-title");
+        const dateEl = document.getElementById("berita-date");
+        const imageEl = document.getElementById("berita-image");
+        const bodyEl = document.getElementById("berita-body");
+        const komentarContainer = document.getElementById("komentar-container");
+        const komentarEmpty = document.getElementById("komentar-empty");
+
+        if (!beritaId) {
+            titleEl.textContent = "Berita tidak ditemukan.";
+        } else {
+            fetch(`/api/berita/${beritaId}/`)
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Gagal memuat data.");
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    titleEl.textContent = data.judul;
+                    dateEl.textContent = `Terbit: ${new Date(data.tanggal).toLocaleDateString()}`;
+                    if (data.gambar) {
+                        imageEl.src = data.gambar;
+                        imageEl.classList.remove("d-none");
+                    }
+                    bodyEl.textContent = data.isi;
+
+                    komentarContainer.innerHTML = "";
+                    if (!data.komentar || !data.komentar.length) {
+                        komentarEmpty.textContent = "Belum ada komentar.";
+                        komentarContainer.appendChild(komentarEmpty);
+                        return;
+                    }
+
+                    data.komentar.forEach((komentar) => {
+                        const card = document.createElement("div");
+                        card.className = "card mb-3";
+                        card.innerHTML = `
+                            <div class="card-body">
+                                <h6 class="card-subtitle mb-2 text-muted">${komentar.nama} - ${new Date(komentar.tanggal).toLocaleString()}</h6>
+                                <p class="card-text">${komentar.isi}</p>
+                            </div>
+                        `;
+                        komentarContainer.appendChild(card);
+                    });
+                })
+                .catch((error) => {
+                    titleEl.textContent = error.message;
+                    komentarContainer.innerHTML = "";
+                    komentarEmpty.textContent = "Komentar tidak dapat dimuat.";
+                    komentarContainer.appendChild(komentarEmpty);
+                });
+        }
+    </script>
+</body>
+</html>
